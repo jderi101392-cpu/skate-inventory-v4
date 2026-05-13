@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skate Inventory</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#3B6D11;--green-bg:#EAF3DE;--green-mid:#639922;--green-light:#C0DD97;
+  --blue:#185FA5;--blue-bg:#E6F1FB;--blue-mid:#378ADD;--blue-light:#B5D4F4;
+  --yellow:#854F0B;--yellow-bg:#FAEEDA;--yellow-mid:#BA7517;--yellow-light:#FAC775;
+  --red-bg:#FCEBEB;--red-text:#A32D2D;--red-mid:#E24B4A;
+  --glow-green:0 0 0 3px #639922;--glow-blue:0 0 0 3px #378ADD;
+  --glow-yellow:0 0 0 3px #BA7517;--glow-red:0 0 0 3px #E24B4A;
+  --bg:#F2F2F2;--surface:#FFFFFF;--surface2:#F7F7F7;
+  --border:#E0E0E0;--border2:#C8C8C8;--text:#1A1A1A;--muted:#717171;
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){:root{--bg:#1A1A1A;--surface:#242424;--surface2:#2E2E2E;--border:#3A3A3A;--border2:#4A4A4A;--text:#F0F0F0;--muted:#909090;}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:3rem}
+.app{max-width:480px;margin:0 auto}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:100}
+.topbar-title{font-size:14px;font-weight:600;letter-spacing:.5px;flex-shrink:0}
+.btn-log-inv{flex-shrink:0;padding:6px 10px;background:var(--red-mid);color:#fff;border:none;border-radius:var(--radius);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.4px;white-space:nowrap;transition:all .2s;box-shadow:var(--glow-red)}
+.btn-log-inv:hover{background:var(--red-text)}
+.loc-pill{display:flex;gap:4px;background:var(--surface2);border-radius:20px;padding:3px;margin-left:auto}
+.loc-btn{border:2px solid transparent;background:none;font-size:11px;font-weight:500;padding:4px 9px;border-radius:16px;cursor:pointer;color:var(--muted);transition:all .2s}
+.loc-btn.active{background:var(--surface);color:var(--text);border:2px solid var(--green-mid);box-shadow:var(--glow-green)}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:22px 18px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6}
+.modal-step{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--red-mid);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-text{font-size:13px;line-height:1.6;color:var(--text)}
+.step-text strong{color:var(--text)}
+.modal-warn{background:var(--red-bg);border:1px solid var(--red-mid);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--red-text);margin:16px 0;line-height:1.6;font-weight:500}
+.modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* MAIN TABS */
+.main-tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.main-tabs::-webkit-scrollbar{display:none}
+.main-tab{flex:0 0 auto;padding:11px 14px;font-size:11px;font-weight:500;border:none;background:none;cursor:pointer;color:var(--muted);white-space:nowrap;transition:all .2s;letter-spacing:.3px;border-bottom:3px solid transparent;outline:none}
+.main-tab.active{color:var(--text);border-bottom:3px solid var(--green-mid);background:var(--green-bg)}
+.section{padding:12px}
+.sub-tab-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.sub-tab-grid-5{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+.sub-tab{padding:10px 6px;font-size:12px;font-weight:500;border:2px solid var(--border);background:var(--surface);border-radius:var(--radius);cursor:pointer;color:var(--muted);text-align:center;transition:all .2s;line-height:1.2}
+.sub-tab.active{color:var(--text);border:2px solid var(--green-mid);box-shadow:var(--glow-green)}
+.sub-tab-grid-5 .sub-tab:nth-child(4){grid-column:1/2}
+.sub-tab-grid-5 .sub-tab:nth-child(5){grid-column:2/3}
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.type-btn{padding:12px 8px;border:2px solid var(--border);background:var(--surface);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);text-align:center;transition:all .2s}
+.type-btn.ab{color:var(--text);border:2px solid var(--blue-mid);box-shadow:var(--glow-blue)}
+.type-btn.ar{color:var(--text);border:2px solid var(--red-mid);box-shadow:var(--glow-red)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
+select,input[type=text],input[type=date],input[type=number],textarea{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:14px;margin-bottom:8px;font-family:inherit;outline:none;transition:all .2s}
+select.chosen,input.chosen{border:2px solid var(--blue-mid);box-shadow:var(--glow-blue)}
+textarea{resize:vertical;min-height:70px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.lr-btn{padding:10px;border:2px solid var(--border);background:var(--surface);border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .2s;text-align:center}
+.lr-btn.active{color:var(--text);border:2px solid var(--yellow-mid);box-shadow:var(--glow-yellow)}
+.toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.toggle{width:36px;height:20px;background:var(--border);border-radius:10px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;border:none}
+.toggle.on{background:var(--yellow-mid);box-shadow:var(--glow-yellow)}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;background:white;border-radius:50%;top:2px;left:2px;transition:transform .2s}
+.toggle.on::after{transform:translateX(16px)}
+.mm-label{font-size:13px;font-weight:500;transition:color .2s}
+.mm-label.on{color:var(--yellow-mid)}
+.counter-wrap{display:flex;align-items:center;gap:10px;margin:8px 0}
+.counter-btn{width:52px;height:52px;border-radius:50%;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-size:22px;font-weight:500;color:var(--text);display:flex;align-items:center;justify-content:center;transition:all .15s;position:relative;flex-shrink:0}
+.counter-btn:active{transform:scale(.92)}
+.counter-num{font-size:28px;font-weight:500;min-width:40px;text-align:center}
+.plus-anim{position:absolute;top:-8px;right:-8px;font-size:13px;font-weight:500;color:var(--green-mid);pointer-events:none;animation:floatUp .7s ease-out forwards}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-22px)}}
+.btn-primary{width:100%;padding:12px;background:var(--text);color:var(--surface);border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;margin-top:4px}
+.btn-ghost{width:100%;padding:12px;background:var(--surface2);color:var(--text);border:2px solid var(--border);border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;margin-top:4px}
+.btn-danger{width:100%;padding:12px;background:var(--red-mid);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;position:relative;overflow:hidden;margin-top:4px}
+.chk{position:absolute;inset:0;background:var(--green-mid);display:flex;align-items:center;justify-content:center;font-size:22px;opacity:0;pointer-events:none;border-radius:var(--radius)}
+.chk.show{opacity:1;animation:cf .8s forwards}
+@keyframes cf{0%{opacity:1}70%{opacity:1}100%{opacity:0}}
+.admin-banner{background:var(--green-bg);border:1px solid var(--green-light);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:10px}
+.breadcrumb{font-size:11px;color:var(--muted);background:var(--surface2);border-radius:var(--radius);padding:6px 10px;margin-bottom:10px;min-height:28px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;border:1px solid var(--border)}
+.bc{color:var(--blue-mid);font-weight:500}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-box{background:var(--surface2);border-radius:var(--radius);padding:12px;text-align:center}
+.stat-num{font-size:24px;font-weight:500}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px}
+.stat-box.danger{background:var(--red-bg);border:1px solid var(--red-mid)}
+.stat-box.danger .stat-num{color:var(--red-text)}
+.stat-box.danger .stat-lbl{color:var(--red-text);opacity:.8}
+.chart-wrap{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.chart-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.chart-table thead tr{background:var(--surface2)}
+.chart-table th{padding:9px 6px;font-size:11px;font-weight:500;color:var(--muted);border-bottom:1px solid var(--border);text-align:center}
+.chart-table th:first-child{text-align:left;padding-left:12px;width:80px}
+.rs{cursor:pointer}
+.rs:hover td{background:var(--surface2)}
+.rs td{padding:10px 6px;border-top:1px solid var(--border);text-align:center;font-size:13px;font-weight:500}
+.rs td:first-child{text-align:left;padding-left:12px}
+.rs.exp td{background:var(--blue-bg);color:var(--blue)}
+.rs.expr td{background:var(--red-bg);color:var(--red-text)}
+.chv{display:inline-block;font-size:10px;margin-left:5px;transition:transform .2s;color:var(--muted)}
+.rs.exp .chv,.rs.expr .chv{transform:rotate(180deg)}
+.rstyle td{padding:7px 6px;border-top:1px solid var(--border);text-align:center;font-size:12px;color:var(--muted);background:var(--surface2)}
+.rstyle td:first-child{text-align:left;padding-left:24px;font-style:italic}
+.rstyle.hr{display:none}
+.bl{display:inline-block;padding:2px 6px;border-radius:8px;font-size:11px;font-weight:500;background:var(--blue-bg);color:var(--blue)}
+.br{display:inline-block;padding:2px 6px;border-radius:8px;font-size:11px;font-weight:500;background:var(--yellow-bg);color:var(--yellow)}
+.flat-wrap{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.flat-table{width:100%;border-collapse:collapse;font-size:13px}
+.flat-table thead tr{background:var(--surface2)}
+.flat-table th{padding:9px 10px;text-align:left;color:var(--muted);font-weight:500;font-size:11px;border-bottom:1px solid var(--border)}
+.flat-table th:not(:first-child){text-align:center}
+.flat-table td{padding:8px 10px;border-top:1px solid var(--border)}
+.flat-table td:not(:first-child){text-align:center}
+.school-card{border:2px solid var(--border);border-radius:var(--radius-lg);padding:12px;margin-bottom:8px;background:var(--surface)}
+.sname{font-size:14px;font-weight:500}
+.smeta{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:6px}
+.bs{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.elem{background:var(--green-bg);color:var(--green)}.mid{background:var(--blue-bg);color:var(--blue)}.high{background:var(--yellow-bg);color:var(--yellow)}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:6px 12px;border-radius:20px;border:2px solid var(--border);background:var(--surface);font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .2s}
+.chip.ca{border:2px solid var(--text);color:var(--text);box-shadow:0 0 0 2px var(--text)}
+.chip.ce{border:2px solid var(--green-mid);color:var(--green);box-shadow:var(--glow-green)}
+.chip.cm{border:2px solid var(--blue-mid);color:var(--blue);box-shadow:var(--glow-blue)}
+.chip.ch{border:2px solid var(--yellow-mid);color:var(--yellow);box-shadow:var(--glow-yellow)}
+.tracker-section{margin-bottom:14px}
+.tracker-label{font-size:12px;font-weight:500;margin-bottom:6px}
+.tracker-blocks{display:flex;flex-wrap:wrap;gap:4px}
+.block{width:34px;height:34px;border-radius:4px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500}
+.be{background:var(--surface2);border-color:var(--green-light)}.bm{background:var(--surface2);border-color:var(--blue-light)}.bh{background:var(--surface2);border-color:var(--yellow-light)}
+.fe{background:var(--green-bg);border:2px solid var(--green-mid);box-shadow:var(--glow-green);color:var(--green)}
+.fm{background:var(--blue-bg);border:2px solid var(--blue-mid);box-shadow:var(--glow-blue);color:var(--blue)}
+.fh{background:var(--yellow-bg);border:2px solid var(--yellow-mid);box-shadow:var(--glow-yellow);color:var(--yellow)}
+.hi{border-bottom:1px solid var(--border);padding:10px 0;font-size:13px}
+.hi:last-child{border-bottom:none}
+.ht{font-size:11px;color:var(--muted);margin-top:2px}
+.hb{display:inline-block;padding:1px 7px;border-radius:8px;font-size:11px;font-weight:500;margin-right:5px}
+.hb-d{background:var(--red-bg);color:var(--red-text)}.hb-r{background:var(--green-bg);color:var(--green)}
+.hb-n{background:var(--blue-bg);color:var(--blue)}.hb-ret{background:#F1EFE8;color:#5F5E5A}.hb-t{background:var(--yellow-bg);color:var(--yellow)}
+.hb-sync{background:var(--blue-bg);color:var(--blue)}
+.req{font-size:11px;color:var(--red-text);margin-bottom:4px;font-weight:500}
+.empty{text-align:center;padding:2rem;color:var(--muted);font-size:13px}
+.report-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px}
+.report-title{font-size:13px;font-weight:600;margin-bottom:10px}
+.diff-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.diff-row:last-child{border-bottom:none}
+.diff-warn{color:var(--red-mid);font-weight:600}
+.diff-ok{color:var(--green-mid);font-weight:600}
+.section-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px}
+.reason-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.reason-item:last-child{border-bottom:none}
+.reason-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="logInvModal">
+  <div class="modal">
+    <div class="modal-title">&#128229; Log Inventory</div>
+    <div class="modal-sub">You are about to finalize the In-Depth Inventory for <strong id="modalLoc">IN</strong>. Here is exactly what will happen:</div>
+    <div class="modal-step"><div class="step-num">1</div><div class="step-text"><strong>Export</strong> — All In-Depth Inventory data will be downloaded as a CSV file to your device for your records.</div></div>
+    <div class="modal-step"><div class="step-num">2</div><div class="step-text"><strong>Compare</strong> — In-Depth size totals will be compared against Active Inventory. A difference report will be shown on screen and included in the CSV.</div></div>
+    <div class="modal-step"><div class="step-num">3</div><div class="step-text"><strong>Sync</strong> — Active Inventory will be updated to match the In-Depth counts by size. Style breakdowns are not carried over to Active Inventory.</div></div>
+    <div class="modal-step"><div class="step-num">4</div><div class="step-text"><strong>Clear</strong> — All In-Depth Inventory data for <strong id="modalLoc2">IN</strong> will be wiped to zero for the next count.</div></div>
+    <div class="modal-warn">&#9888;&#65039; This cannot be undone. Make sure your count is complete before confirming.</div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-danger" onclick="confirmLogInv()">Confirm &amp; Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title">SKATE INVENTORY</div>
+  <button class="btn-log-inv" onclick="openModal()">LOG INVENTORY</button>
+  <div class="loc-pill">
+    <button class="loc-btn active" onclick="setLoc('IN',this)">IN</button>
+    <button class="loc-btn" onclick="setLoc('TN',this)">TN</button>
+    <button class="loc-btn" onclick="setLoc('IL',this)">IL</button>
+    <button class="loc-btn" id="allBtn" onclick="setLoc('ALL',this)">ALL</button>
+  </div>
+</div>
+
+<!-- MAIN TABS -->
+<div class="main-tabs">
+  <button class="main-tab active" onclick="setMain('indepth',this)">IN-DEPTH INVENTORY</button>
+  <button class="main-tab" onclick="setMain('active',this)">ACTIVE INVENTORY</button>
+  <button class="main-tab" onclick="setMain('retired',this)">RETIRED INVENTORY</button>
+</div>
+
+<!-- ======= IN-DEPTH ======= -->
+<div id="tab-indepth" class="section">
+  <div id="idBanner" class="admin-banner">&#128737; Admin View — IN Office</div>
+  <div class="sub-tab-grid-2">
+    <button class="sub-tab active" onclick="setSub('id','counter',this)">Counter</button>
+    <button class="sub-tab" onclick="setSub('id','inventory',this)">Inventory</button>
+  </div>
+  <div id="id-counter">
+    <div class="breadcrumb" id="bcID">Select a type to begin</div>
+    <div class="type-grid">
+      <button class="type-btn ab" onclick="setIDType('quad',this)">Quad Skates</button>
+      <button class="type-btn" onclick="setIDType('inline',this)">Inline Skates</button>
+      <button class="type-btn" onclick="setIDType('safety',this)">Safety Gear</button>
+      <button class="type-btn" onclick="setIDType('misc',this)">Misc.</button>
+    </div>
+    <div id="id-form-quad" class="card">
+      <div class="toggle-row"><button class="toggle" id="quadMM" onclick="toggleMM('quad')"></button><span class="mm-label" id="quadMMLbl">Mismatch</span></div>
+      <label>Style</label><select id="quadStyle" onchange="markC(this);updateIDBC()"><option value="">Select style...</option><option>B</option><option>C</option><option>R</option><option>R (New)</option><option>V (Bl)</option><option>V (Br)</option><option>V (UnP)</option></select>
+      <label>Size</label><select id="quadSize" onchange="markC(this);updateIDBC()"><option value="">Select size...</option><option>J8</option><option>J9</option><option>J10</option><option>J11</option><option>J12</option><option>J13</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option></select>
+      <div id="quadLR" class="lr-grid hidden"><button class="lr-btn" onclick="setLR('quad','L',this)">Left</button><button class="lr-btn" onclick="setLR('quad','R',this)">Right</button></div>
+      <div class="counter-wrap"><button class="counter-btn" onclick="chgID('quad',-1)" style="font-size:26px">−</button><div class="counter-num" id="quadCount">0</div><button class="counter-btn" onclick="chgID('quad',1)" id="quadCBtn">+</button></div>
+      <button class="btn-primary" onclick="submitID('quad')">Add to Inventory <div class="chk" id="chkQuad">✓</div></button>
+    </div>
+    <div id="id-form-inline" class="card hidden">
+      <div class="toggle-row"><button class="toggle" id="inlineMM" onclick="toggleMM('inline')"></button><span class="mm-label" id="inlineMMLbl">Mismatch</span></div>
+      <label>Style</label><select id="inlineStyle" onchange="markC(this);updateIDBC()"><option value="">Select style...</option><option>Orlando</option><option>Barcelona</option><option>Barcelona (V)</option><option>FCO</option><option>China Orange</option><option>Lotus</option><option>T201</option><option>Leather</option></select>
+      <label>Size</label><select id="inlineSize" onchange="markC(this);updateIDBC()"><option value="">Select size...</option><option>J</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option></select>
+      <div id="inlineLR" class="lr-grid hidden"><button class="lr-btn" onclick="setLR('inline','L',this)">Left</button><button class="lr-btn" onclick="setLR('inline','R',this)">Right</button></div>
+      <div class="counter-wrap"><button class="counter-btn" onclick="chgID('inline',-1)" style="font-size:26px">−</button><div class="counter-num" id="inlineCount">0</div><button class="counter-btn" onclick="chgID('inline',1)" id="inlineCBtn">+</button></div>
+      <button class="btn-primary" onclick="submitID('inline')">Add to Inventory <div class="chk" id="chkInline">✓</div></button>
+    </div>
+    <div id="id-form-safety" class="card hidden">
+      <label>Gear type</label><select id="safetyGear" onchange="markC(this);updateIDBC()"><option value="">Select gear...</option><option>Wrist Guard</option><option>Helmet</option><option>Elbow/Knee</option></select>
+      <label>Color / size</label><select id="safetyColor" onchange="markC(this);updateIDBC()"><option value="">Select color...</option><option>Yellow (X-Small)</option><option>Purple (Small)</option><option>Blue (Medium)</option><option>Black (Large)</option></select>
+      <label>Quantity</label><input type="number" id="safetyQty" min="0" value="0">
+      <button class="btn-primary" onclick="submitID('safety')">Add to Inventory <div class="chk" id="chkSafety">✓</div></button>
+    </div>
+    <div id="id-form-misc" class="card hidden">
+      <label>Category</label>
+      <div class="lr-grid" style="margin-bottom:10px"><button class="lr-btn active" id="idMCabBtn" onclick="setIDMCat('CAB',this)">Cabinet</button><button class="lr-btn" id="idMStgBtn" onclick="setIDMCat('STG',this)">Storage</button></div>
+      <div id="idMCabSel"><label>Cabinet type</label><select id="miscCab" onchange="markC(this);updateIDBC()"><option value="">Select...</option><option>Quad Cabinet</option><option>Inline Cabinet</option><option>Flexi Cabinet</option><option>Work Station Cabinet</option><option>Storage Cabinet</option><option>Mismatch Quad Cabinet</option></select></div>
+      <div id="idMStgSel" class="hidden"><label>Storage type</label><select id="miscStg" onchange="markC(this);updateIDBC()"><option value="">Select...</option><option>Helmet Cage</option><option>Tall Quad Storage</option><option>Tall Inline Storage</option><option>PVC Helmet Rack</option><option>Wrist Guard Bin</option></select></div>
+      <label>Quantity</label><input type="number" id="miscQty" min="0" value="0">
+      <button class="btn-primary" onclick="submitID('misc')">Add to Inventory <div class="chk" id="chkMisc">✓</div></button>
+    </div>
+  </div>
+  <div id="id-inventory" class="hidden">
+    <div class="stat-grid"><div class="stat-box"><div class="stat-num" id="idIH">0</div><div class="stat-lbl">In-House Pairs</div></div><div class="stat-box"><div class="stat-num" id="idMM">0</div><div class="stat-lbl">Mismatch</div></div></div>
+    <div class="type-grid">
+      <button class="type-btn ab" onclick="setIDInvType('quad',this)">Quad</button>
+      <button class="type-btn" onclick="setIDInvType('inline',this)">Inline</button>
+      <button class="type-btn" onclick="setIDInvType('safety',this)">Safety Gear</button>
+      <button class="type-btn" onclick="setIDInvType('misc',this)">Misc.</button>
+    </div>
+    <div id="idChart"></div>
+  </div>
+</div>
+
+<!-- ======= ACTIVE ======= -->
+<div id="tab-active" class="section hidden">
+  <div id="acBanner" class="admin-banner hidden">&#128737; Admin View — IN Office</div>
+  <div class="sub-tab-grid-5">
+    <button class="sub-tab active" onclick="setSub('ac','log',this)">Log Movement</button>
+    <button class="sub-tab" onclick="setSub('ac','schools',this)">Active Schools</button>
+    <button class="sub-tab" onclick="setSub('ac','inventory',this)">Inventory</button>
+    <button class="sub-tab" onclick="setSub('ac','bydate',this)">By Date</button>
+    <button class="sub-tab" onclick="setSub('ac','history',this)">History</button>
+  </div>
+  <div id="ac-log">
+    <div class="breadcrumb" id="bcAC">Select skate type and movement type</div>
+    <div class="type-grid" id="acSkTypeGrid">
+      <button class="type-btn ab" onclick="setACSkType('quad',this)">Quad</button>
+      <button class="type-btn" onclick="setACSkType('inline',this)">Inline</button>
+    </div>
+    <div class="card">
+      <label>Movement type</label>
+      <select id="movType" onchange="onMovChange(this)">
+        <option value="">Select type...</option>
+        <option value="DAMAGED">Damaged</option>
+        <option value="REPAIRED">Repaired</option>
+        <option value="NEW">New Equipment Added</option>
+        <option value="RETIRED">Retired</option>
+        <option value="TRANSFER">Transfer Between Offices</option>
+      </select>
+      <!-- SIZE-BASED (Damaged / Repaired / Transfer) -->
+      <div id="movSzSection" class="hidden">
+        <label>Size</label><select id="movSize" onchange="markC(this);updateACBC()"><option value="">Select size...</option></select>
+        <div id="mismatchRow" class="toggle-row hidden"><button class="toggle" id="mmToggle" onclick="toggleMovMM()"></button><span class="mm-label" id="mmLabel">Mismatch</span></div>
+        <div id="lrWrap" class="lr-grid hidden"><button class="lr-btn" onclick="setMovLR('L',this)">Left</button><button class="lr-btn" onclick="setMovLR('R',this)">Right</button></div>
+        <div id="transferWrap" class="hidden"><label>Transfer to</label><select id="movTo" onchange="markC(this);updateACBC()"><option value="">Select office...</option></select></div>
+        <div class="counter-wrap"><button class="counter-btn" onclick="chgCnt('movSz',-1)" style="font-size:26px">−</button><div class="counter-num" id="movSzCount">0</div><button class="counter-btn" onclick="chgCnt('movSz',1)" id="movSzCBtn">+</button></div>
+        <button class="btn-primary" id="movSzSubmitBtn" onclick="submitMovSz()">Log Movement <div class="chk" id="chkMovSz">✓</div></button>
+      </div>
+      <!-- NEW EQUIPMENT — full counter layout -->
+      <div id="movNewSection" class="hidden">
+        <div class="type-grid" style="margin-top:8px">
+          <button class="type-btn ab" onclick="setNewType('quad',this)">Quad</button>
+          <button class="type-btn" onclick="setNewType('inline',this)">Inline</button>
+          <button class="type-btn" onclick="setNewType('safety',this)">Safety Gear</button>
+          <button class="type-btn" onclick="setNewType('misc',this)">Misc.</button>
+        </div>
+        <div id="new-quad" class="card">
+          <label>Style</label><select id="nQStyle" onchange="markC(this)"><option value="">Select style...</option><option>B</option><option>C</option><option>R</option><option>R (New)</option><option>V (Bl)</option><option>V (Br)</option><option>V (UnP)</option></select>
+          <label>Size</label><select id="nQSize" onchange="markC(this)"><option value="">Select size...</option><option>J8</option><option>J9</option><option>J10</option><option>J11</option><option>J12</option><option>J13</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option></select>
+          <div class="counter-wrap"><button class="counter-btn" onclick="chgCnt('nQ',-1)" style="font-size:26px">−</button><div class="counter-num" id="nQCount">0</div><button class="counter-btn" onclick="chgCnt('nQ',1)" id="nQCBtn">+</button></div>
+          <button class="btn-primary" onclick="submitNew('quad')">Add New Equipment <div class="chk" id="chkNQ">✓</div></button>
+        </div>
+        <div id="new-inline" class="card hidden">
+          <label>Style</label><select id="nIStyle" onchange="markC(this)"><option value="">Select style...</option><option>Orlando</option><option>Barcelona</option><option>Barcelona (V)</option><option>FCO</option><option>China Orange</option><option>Lotus</option><option>T201</option><option>Leather</option></select>
+          <label>Size</label><select id="nISize" onchange="markC(this)"><option value="">Select size...</option><option>J</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option></select>
+          <div class="counter-wrap"><button class="counter-btn" onclick="chgCnt('nI',-1)" style="font-size:26px">−</button><div class="counter-num" id="nICount">0</div><button class="counter-btn" onclick="chgCnt('nI',1)" id="nICBtn">+</button></div>
+          <button class="btn-primary" onclick="submitNew('inline')">Add New Equipment <div class="chk" id="chkNI">✓</div></button>
+        </div>
+        <div id="new-safety" class="card hidden">
+          <label>Gear type</label><select id="nSGear" onchange="markC(this)"><option value="">Select...</option><option>Wrist Guard</option><option>Helmet</option><option>Elbow/Knee</option></select>
+          <label>Color / size</label><select id="nSColor" onchange="markC(this)"><option value="">Select...</option><option>Yellow (X-Small)</option><option>Purple (Small)</option><option>Blue (Medium)</option><option>Black (Large)</option></select>
+          <label>Quantity</label><input type="number" id="nSQty" min="0" value="0">
+          <button class="btn-primary" onclick="submitNew('safety')">Add New Equipment <div class="chk" id="chkNS">✓</div></button>
+        </div>
+        <div id="new-misc" class="card hidden">
+          <label>Category</label>
+          <div class="lr-grid" style="margin-bottom:8px"><button class="lr-btn active" id="nMCabBtn" onclick="setNMCat('CAB',this)">Cabinet</button><button class="lr-btn" id="nMStgBtn" onclick="setNMCat('STG',this)">Storage</button></div>
+          <div id="nMCabSel"><select id="nMCab" onchange="markC(this)"><option value="">Select...</option><option>Quad Cabinet</option><option>Inline Cabinet</option><option>Flexi Cabinet</option><option>Work Station Cabinet</option><option>Storage Cabinet</option><option>Mismatch Quad Cabinet</option></select></div>
+          <div id="nMStgSel" class="hidden"><select id="nMStg" onchange="markC(this)"><option value="">Select...</option><option>Helmet Cage</option><option>Tall Quad Storage</option><option>Tall Inline Storage</option><option>PVC Helmet Rack</option><option>Wrist Guard Bin</option></select></div>
+          <label>Quantity</label><input type="number" id="nMQty" min="0" value="0">
+          <button class="btn-primary" onclick="submitNew('misc')">Add New Equipment <div class="chk" id="chkNM">✓</div></button>
+        </div>
+      </div>
+      <!-- RETIRED — full counter layout -->
+      <div id="movRetSection" class="hidden">
+        <div class="type-grid" style="margin-top:8px">
+          <button class="type-btn ab" onclick="setRetMovType('quad',this)">Quad</button>
+          <button class="type-btn" onclick="setRetMovType('inline',this)">Inline</button>
+          <button class="type-btn" onclick="setRetMovType('safety',this)">Safety Gear</button>
+          <button class="type-btn" onclick="setRetMovType('misc',this)">Misc.</button>
+        </div>
+        <div id="ret-quad" class="card">
+          <label>Style</label><select id="rQStyle" onchange="markC(this)"><option value="">Select style...</option><option>B</option><option>C</option><option>R</option><option>R (New)</option><option>V (Bl)</option><option>V (Br)</option><option>V (UnP)</option></select>
+          <label>Size</label><select id="rQSize" onchange="markC(this)"><option value="">Select size...</option><option>J8</option><option>J9</option><option>J10</option><option>J11</option><option>J12</option><option>J13</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option></select>
+          <div class="counter-wrap"><button class="counter-btn" onclick="chgCnt('rQ',-1)" style="font-size:26px">−</button><div class="counter-num" id="rQCount">0</div><button class="counter-btn" onclick="chgCnt('rQ',1)" id="rQCBtn">+</button></div>
+          <div class="req">* Required — describe what is wrong</div>
+          <label>Reason</label><textarea id="rQReason" placeholder="Describe the issue..."></textarea>
+          <button class="btn-danger" onclick="submitRetMov('quad')">Log Retirement <div class="chk" id="chkRQ">✓</div></button>
+        </div>
+        <div id="ret-inline" class="card hidden">
+          <label>Style</label><select id="rIStyle" onchange="markC(this)"><option value="">Select style...</option><option>Orlando</option><option>Barcelona</option><option>Barcelona (V)</option><option>FCO</option><option>China Orange</option><option>Lotus</option><option>T201</option><option>Leather</option></select>
+          <label>Size</label><select id="rISize" onchange="markC(this)"><option value="">Select size...</option><option>J</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option></select>
+          <div class="counter-wrap"><button class="counter-btn" onclick="chgCnt('rI',-1)" style="font-size:26px">−</button><div class="counter-num" id="rICount">0</div><button class="counter-btn" onclick="chgCnt('rI',1)" id="rICBtn">+</button></div>
+          <div class="req">* Required — describe what is wrong</div>
+          <label>Reason</label><textarea id="rIReason" placeholder="Describe the issue..."></textarea>
+          <button class="btn-danger" onclick="submitRetMov('inline')">Log Retirement <div class="chk" id="chkRI">✓</div></button>
+        </div>
+        <div id="ret-safety" class="card hidden">
+          <label>Gear type</label><select id="rSGear" onchange="markC(this)"><option value="">Select...</option><option>Wrist Guard</option><option>Helmet</option><option>Elbow/Knee</option></select>
+          <label>Color / size</label><select id="rSColor" onchange="markC(this)"><option value="">Select...</option><option>Yellow (X-Small)</option><option>Purple (Small)</option><option>Blue (Medium)</option><option>Black (Large)</option></select>
+          <label>Quantity</label><input type="number" id="rSQty" min="1" value="1">
+          <div class="req">* Required — describe what is wrong</div>
+          <label>Reason</label><textarea id="rSReason" placeholder="Describe the issue..."></textarea>
+          <button class="btn-danger" onclick="submitRetMov('safety')">Log Retirement <div class="chk" id="chkRS">✓</div></button>
+        </div>
+        <div id="ret-misc" class="card hidden">
+          <label>Category</label>
+          <div class="lr-grid" style="margin-bottom:8px"><button class="lr-btn active" id="rMCabBtn" onclick="setRMCat('CAB',this)">Cabinet</button><button class="lr-btn" id="rMStgBtn" onclick="setRMCat('STG',this)">Storage</button></div>
+          <div id="rMCabSel"><select id="rMCab" onchange="markC(this)"><option value="">Select...</option><option>Quad Cabinet</option><option>Inline Cabinet</option><option>Flexi Cabinet</option><option>Work Station Cabinet</option><option>Storage Cabinet</option><option>Mismatch Quad Cabinet</option></select></div>
+          <div id="rMStgSel" class="hidden"><select id="rMStg" onchange="markC(this)"><option value="">Select...</option><option>Helmet Cage</option><option>Tall Quad Storage</option><option>Tall Inline Storage</option><option>PVC Helmet Rack</option><option>Wrist Guard Bin</option></select></div>
+          <label>Quantity</label><input type="number" id="rMQty" min="1" value="1">
+          <div class="req">* Required — describe what is wrong</div>
+          <label>Reason</label><textarea id="rMReason" placeholder="Describe the issue..."></textarea>
+          <button class="btn-danger" onclick="submitRetMov('misc')">Log Retirement <div class="chk" id="chkRM">✓</div></button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- SCHOOLS -->
+  <div id="ac-schools" class="hidden">
+    <div class="filter-row"><button class="chip ca" onclick="filterSch('ALL',this)">All</button><button class="chip" onclick="filterSch('ELEMENTARY',this)">Elementary</button><button class="chip" onclick="filterSch('MIDDLE',this)">Middle</button><button class="chip" onclick="filterSch('HIGH',this)">High</button></div>
+    <button class="btn-primary" onclick="toggleAddSch()" style="margin-bottom:10px">+ Add School <div class="chk" id="chkSch">✓</div></button>
+    <div id="addSchForm" class="card hidden">
+      <label>School name</label><input type="text" id="sName" onchange="markC(this)" placeholder="School name">
+      <label>School type</label><select id="sType" onchange="markC(this)"><option value="">Select...</option><option value="ELEMENTARY">Elementary</option><option value="MIDDLE">Middle</option><option value="HIGH">High</option></select>
+      <div class="row2"><div><label>Start</label><input type="date" id="sStart" onchange="markC(this)"></div><div><label>End</label><input type="date" id="sEnd" onchange="markC(this)"></div></div>
+      <div class="row2"><div><label>Packed</label><input type="date" id="sPacked" onchange="markC(this)"></div><div><label>Delivery</label><input type="date" id="sDelivery" onchange="markC(this)"></div></div>
+      <label>Pickup date</label><input type="date" id="sPickup" onchange="markC(this)">
+      <label>Skate sizes (e.g. J8×10, 5×6)</label><input type="text" id="sSizes" onchange="markC(this)" placeholder="Size×Qty, ...">
+      <div class="row2" style="margin-top:4px"><button class="btn-primary" onclick="submitSch()">Save School</button><button class="btn-ghost" onclick="toggleAddSch()">Cancel</button></div>
+    </div>
+    <div id="schoolList"></div>
+  </div>
+  <!-- AC INVENTORY -->
+  <div id="ac-inventory" class="hidden">
+    <div class="stat-grid"><div class="stat-box"><div class="stat-num" id="aIH">0</div><div class="stat-lbl">In-House</div></div><div class="stat-box"><div class="stat-num" id="aOut">0</div><div class="stat-lbl">Out</div></div><div class="stat-box"><div class="stat-num" id="aDmg">0</div><div class="stat-lbl">Damaged</div></div><div class="stat-box"><div class="stat-num" id="aTot">0</div><div class="stat-lbl">Total</div></div></div>
+    <div class="type-grid"><button class="type-btn ab" onclick="setACInvType('quad',this)">Quad</button><button class="type-btn" onclick="setACInvType('inline',this)">Inline</button></div>
+    <div id="acChart"></div>
+  </div>
+  <!-- BY DATE -->
+  <div id="ac-bydate" class="hidden">
+    <div class="card">
+      <div class="toggle-row"><button class="toggle on" id="dtToggle" onclick="toggleDtMode()"></button><span class="mm-label on" id="dtLabel">Date range</span></div>
+      <div id="dtRange"><div class="row2"><div><label>From</label><input type="date" id="dtFrom" onchange="refreshBD()"></div><div><label>To</label><input type="date" id="dtTo" onchange="refreshBD()"></div></div></div>
+      <div id="dtSingle" class="hidden"><label>Date</label><input type="date" id="dtOne" onchange="refreshBD()"></div>
+      <div class="filter-row" style="margin-bottom:0"><button class="chip ca" onclick="filterBD('ALL',this)">All</button><button class="chip" onclick="filterBD('ELEMENTARY',this)">Elementary</button><button class="chip" onclick="filterBD('MIDDLE',this)">Middle</button><button class="chip" onclick="filterBD('HIGH',this)">High</button></div>
+    </div>
+    <div id="bdResults"></div>
+    <div class="card" style="margin-top:4px">
+      <div style="font-size:12px;font-weight:500;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px">School Tracker</div>
+      <div class="tracker-section"><div class="tracker-label" style="color:var(--green)">Elementary <span id="eCount" style="font-weight:400;color:var(--muted)">(0)</span></div><div class="tracker-blocks" id="eBlocks"></div></div>
+      <div class="tracker-section"><div class="tracker-label" style="color:var(--blue)">Middle <span id="mCount" style="font-weight:400;color:var(--muted)">(0)</span></div><div class="tracker-blocks" id="mBlocks"></div></div>
+      <div class="tracker-section"><div class="tracker-label" style="color:var(--yellow)">High <span id="hCount" style="font-weight:400;color:var(--muted)">(0)</span></div><div class="tracker-blocks" id="hBlocks"></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">1 block = 1–120 pairs · 2 = 121–240 · 3 = 241+</div>
+    </div>
+  </div>
+  <div id="ac-history" class="hidden"><div class="card"><div id="histList"><div class="empty">No movements logged yet</div></div></div></div>
+</div>
+
+<!-- ======= RETIRED (view only) ======= -->
+<div id="tab-retired" class="section hidden">
+  <div id="retBanner" class="admin-banner hidden">&#128737; Admin View — IN Office</div>
+  <div class="type-grid">
+    <button class="type-btn ar" onclick="setRetType('quad',this)">Quad Skates</button>
+    <button class="type-btn" onclick="setRetType('inline',this)">Inline Skates</button>
+    <button class="type-btn" onclick="setRetType('safety',this)">Safety Gear</button>
+    <button class="type-btn" onclick="setRetType('misc',this)">Misc.</button>
+  </div>
+  <div class="stat-grid"><div class="stat-box danger"><div class="stat-num" id="retTotal">0</div><div class="stat-lbl">Total Retired</div></div><div class="stat-box danger"><div class="stat-num" id="retAffected">0</div><div class="stat-lbl">Items Affected</div></div></div>
+  <div id="retChart"></div>
+  <div class="card">
+    <div class="report-title">Retirement Reasons</div>
+    <div id="retReasonList"><div class="empty">No retirements logged yet</div></div>
+  </div>
+</div>
+
+</div><!-- end .app -->
+
+<script>
+const QS=['J8','J9','J10','J11','J12','J13','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16'];
+const IS=['J','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17'];
+const QSTYLES=['B','C','R','R (New)','V (Bl)','V (Br)','V (UnP)'];
+const ISTYLES=['Orlando','Barcelona','Barcelona (V)','FCO','China Orange','Lotus','T201','Leather'];
+const SGEARS=['Wrist Guard','Helmet','Elbow/Knee'];
+const SCOLORS=['Yellow (X-Small)','Purple (Small)','Blue (Medium)','Black (Large)'];
+const CABS=['Quad Cabinet','Inline Cabinet','Flexi Cabinet','Work Station Cabinet','Storage Cabinet','Mismatch Quad Cabinet'];
+const STGS=['Helmet Cage','Tall Quad Storage','Tall Inline Storage','PVC Helmet Rack','Wrist Guard Bin'];
+const OFFS=['IN','TN','IL'];
+
+let loc='IN',idType='quad',idInvType='quad',idMCat='CAB';
+let idMM={quad:false,inline:false},idLR={quad:null,inline:null};
+let acSkType='quad',acInvType='quad',newMCat='CAB',retMovMCat='CAB';
+let movLR=null,mmOn=false,newType='quad',retMovType='quad';
+let dtRange=true,bdFilt='ALL',sFilt='ALL',addOpen=false,retType='quad';
+
+const DB={};
+OFFS.forEach(o=>{DB[o]={
+  id:{quad:{},inline:{},safety:{},misc:{},quadMM:{},inlineMM:{}},
+  ac:{active:{quad:{},inline:{}},damaged:{quad:{},inline:{}},out:{quad:{},inline:{}},tx:{quad:{},inline:{}},schools:[],hist:[]},
+  ret:{quad:{},inline:{},safety:{},misc:{},reasons:[]}
+};});
+
+function gDB(){return DB[loc==='ALL'?'IN':loc];}
+function mID(){const ls=loc==='ALL'?OFFS:[loc];const m={quad:{},inline:{},safety:{},misc:{},quadMM:{},inlineMM:{}};ls.forEach(o=>['quad','inline','safety','misc','quadMM','inlineMM'].forEach(c=>{Object.entries(DB[o].id[c]).forEach(([k,v])=>{m[c][k]=(m[c][k]||0)+v;});}));return m;}
+function mAC(){const ls=loc==='ALL'?OFFS:[loc];const m={active:{quad:{},inline:{}},damaged:{quad:{},inline:{}},out:{quad:{},inline:{}},tx:{quad:{},inline:{}},schools:[],hist:[]};ls.forEach(o=>{['quad','inline'].forEach(t=>{['active','damaged','out','tx'].forEach(c=>{Object.entries(DB[o].ac[c][t]).forEach(([k,v])=>{m[c][t][k]=(m[c][t][k]||0)+v;});});});m.schools.push(...DB[o].ac.schools);m.hist.push(...DB[o].ac.hist);});return m;}
+function mRET(){const ls=loc==='ALL'?OFFS:[loc];const m={quad:{},inline:{},safety:{},misc:{},reasons:[]};ls.forEach(o=>{['quad','inline','safety','misc'].forEach(c=>{Object.entries(DB[o].ret[c]).forEach(([k,v])=>{m[c][k]=(m[c][k]||0)+v;});});m.reasons.push(...DB[o].ret.reasons);});return m;}
+
+// NAV
+function setLoc(l,btn){loc=l;document.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const isIN=l==='IN';['idBanner','acBanner','retBanner'].forEach(id=>document.getElementById(id).classList.toggle('hidden',!isIN));document.getElementById('allBtn').style.display=(isIN||l==='ALL')?'':'none';refreshIDInv();refreshACInv();refreshRet();renderSch();refreshBD();renderHist();}
+function setMain(t,btn){document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');['indepth','active','retired'].forEach(id=>document.getElementById('tab-'+id).classList.toggle('hidden',id!==t));}
+function setSub(p,t,btn){const tabs=p==='id'?['counter','inventory']:['log','schools','inventory','bydate','history'];document.querySelectorAll(`#tab-${p==='id'?'indepth':'active'} .sub-tab`).forEach(b=>b.classList.remove('active'));btn.classList.add('active');tabs.forEach(id=>document.getElementById(p+'-'+id).classList.toggle('hidden',id!==t));if(p==='id'&&t==='inventory')refreshIDInv();if(p==='ac'&&t==='inventory')refreshACInv();if(p==='ac'&&t==='schools')renderSch();if(p==='ac'&&t==='bydate')refreshBD();if(p==='ac'&&t==='history')renderHist();}
+
+// HELPERS
+function markC(el){el.classList.toggle('chosen',!!(el.value&&el.value.trim()));}
+function flash(id){const el=document.getElementById(id);if(!el)return;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),800);}
+function xpand(rid,row,red){row.classList.toggle(red?'expr':'exp');document.querySelectorAll(`[data-g="${rid}"]`).forEach(r=>r.classList.toggle('hr'));}
+function chgCnt(key,d){const elId=key+'Count',btnId=key+'CBtn';const el=document.getElementById(elId);if(!el)return;el.textContent=Math.max(0,parseInt(el.textContent)+d);if(d>0){const btn=document.getElementById(btnId);if(btn){const sp=document.createElement('span');sp.className='plus-anim';sp.textContent='+1';btn.appendChild(sp);setTimeout(()=>sp.remove(),700);}}}
+
+// MODAL
+function openModal(){
+  if(loc==='ALL'){alert('Please select a specific office (IN, TN, or IL) to log inventory.');return;}
+  ['modalLoc','modalLoc2'].forEach(id=>document.getElementById(id).textContent=loc);
+  document.getElementById('logInvModal').classList.remove('hidden');
+}
+function closeModal(){document.getElementById('logInvModal').classList.add('hidden');}
+function confirmLogInv(){
+  const d=DB[loc];const id=d.id;const ac=d.ac;
+  // Build size totals from ID
+  const qBySz={},iBySz={};
+  QS.forEach(sz=>{let t=0;QSTYLES.forEach(s=>t+=(id.quad[s+'|'+sz]||0));qBySz[sz]=t;});
+  IS.forEach(sz=>{let t=0;ISTYLES.forEach(s=>t+=(id.inline[s+'|'+sz]||0));iBySz[sz]=t;});
+  // Compare
+  const diffs=[];
+  QS.forEach(sz=>{const idV=qBySz[sz]||0,acV=ac.active.quad[sz]||0;if(idV!==acV)diffs.push({label:`Quad Size ${sz}`,id:idV,ac:acV,diff:idV-acV});});
+  IS.forEach(sz=>{const idV=iBySz[sz]||0,acV=ac.active.inline[sz]||0;if(idV!==acV)diffs.push({label:`Inline Size ${sz}`,id:idV,ac:acV,diff:idV-acV});});
+  // Build CSV
+  const rows=['Skate Inventory Export','Location: '+loc,'Date: '+new Date().toLocaleString(),''];
+  rows.push('=== IN-DEPTH INVENTORY ===');
+  rows.push('Type,Category,Size,Style,Quantity');
+  Object.entries(id.quad).forEach(([k,v])=>{if(v>0){const[st,sz]=k.split('|');rows.push(`Quad,Paired,${sz},${st},${v}`);}});
+  Object.entries(id.inline).forEach(([k,v])=>{if(v>0){const[st,sz]=k.split('|');rows.push(`Inline,Paired,${sz},${st},${v}`);}});
+  Object.entries(id.quadMM).forEach(([k,v])=>{if(v>0){const[st,sz,side]=k.split('|');rows.push(`Quad,Mismatch-${side},${sz},${st},${v}`);}});
+  Object.entries(id.inlineMM).forEach(([k,v])=>{if(v>0){const[st,sz,side]=k.split('|');rows.push(`Inline,Mismatch-${side},${sz},${st},${v}`);}});
+  Object.entries(id.safety).forEach(([k,v])=>{if(v>0){const[g,c]=k.split('|');rows.push(`Safety,${g},${c},,${v}`);}});
+  Object.entries(id.misc).forEach(([item,v])=>{if(v>0)rows.push(`Misc,${item},,,${v}`);});
+  rows.push('','=== DIFFERENCE REPORT ===');
+  if(!diffs.length){rows.push('No differences — In-Depth and Active match.');}
+  else{rows.push('Item,In-Depth,Active,Difference');diffs.forEach(df=>{rows.push(`${df.label},${df.id},${df.ac},${df.diff>0?'+'+df.diff:df.diff}`);});}
+  // Download
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`inventory_${loc}_${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  // Sync active
+  QS.forEach(sz=>ac.active.quad[sz]=qBySz[sz]||0);
+  IS.forEach(sz=>ac.active.inline[sz]=iBySz[sz]||0);
+  const ts=new Date().toLocaleString();
+  ac.hist.unshift({ts,badge:'SYNC',cls:'hb-sync',detail:`In-Depth Inventory logged & synced for ${loc}`,loc});
+  // Wipe ID
+  d.id={quad:{},inline:{},safety:{},misc:{},quadMM:{},inlineMM:{}};
+  closeModal();refreshIDInv();refreshACInv();renderHist();
+  // Show report in active tab
+  const reportHtml=buildReport(diffs,loc);
+  document.querySelectorAll('.main-tab').forEach((b,i)=>{b.classList.toggle('active',i===1);});
+  ['indepth','active','retired'].forEach(id=>document.getElementById('tab-'+id).classList.toggle('hidden',id!=='active'));
+  document.querySelectorAll('#tab-active .sub-tab').forEach((b,i)=>b.classList.toggle('active',i===0));
+  ['log','schools','inventory','bydate','history'].forEach(id=>document.getElementById('ac-'+id).classList.toggle('hidden',id!=='log'));
+  document.getElementById('ac-log').innerHTML=reportHtml;
+}
+function buildReport(diffs,locName){
+  let h=`<div class="report-card"><div class="report-title">&#128202; Inventory Report — ${locName}</div>`;
+  if(!diffs.length){h+='<div style="color:var(--green-mid);font-size:13px;padding:8px 0">&#10003; No differences found. In-Depth and Active inventory match.</div>';}
+  else{h+=`<div class="section-label">Differences Found (${diffs.length})</div>`;diffs.forEach(df=>{const sign=df.diff>0?'+':'';h+=`<div class="diff-row"><span>${df.label}</span><span>ID: <strong>${df.id}</strong> / AC: <strong>${df.ac}</strong> <span class="diff-warn">(${sign}${df.diff})</span></span></div>`;});}
+  h+=`<div style="font-size:11px;color:var(--muted);margin-top:10px">&#128229; CSV downloaded to your device.</div></div>`;
+  h+=`<button class="btn-primary" onclick="location.reload()" style="margin-top:4px">&#8635; Reload App</button>`;
+  return h;
+}
+
+// IN-DEPTH
+function setIDType(t,btn){idType=t;document.querySelectorAll('#id-counter .type-grid .type-btn').forEach(b=>b.classList.remove('ab'));btn.classList.add('ab');['quad','inline','safety','misc'].forEach(id=>document.getElementById('id-form-'+id).classList.toggle('hidden',id!==t));updateIDBC();}
+function setIDInvType(t,btn){idInvType=t;document.querySelectorAll('#id-inventory .type-btn').forEach(b=>b.classList.remove('ab'));btn.classList.add('ab');refreshIDInv();}
+function setIDMCat(c,btn){idMCat=c;document.querySelectorAll('#id-form-misc>.lr-grid .lr-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('idMCabSel').classList.toggle('hidden',c!=='CAB');document.getElementById('idMStgSel').classList.toggle('hidden',c!=='STG');updateIDBC();}
+function toggleMM(type){idMM[type]=!idMM[type];document.getElementById(type+'MM').classList.toggle('on',idMM[type]);document.getElementById(type+'MMLbl').classList.toggle('on',idMM[type]);document.getElementById(type+'LR').classList.toggle('hidden',!idMM[type]);idLR[type]=null;document.querySelectorAll('#'+type+'LR .lr-btn').forEach(b=>b.classList.remove('active'));updateIDBC();}
+function setLR(type,side,btn){idLR[type]=side;document.querySelectorAll('#'+type+'LR .lr-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');updateIDBC();}
+function updateIDBC(){const p=[`<span class="bc">${idType.charAt(0).toUpperCase()+idType.slice(1)}</span>`];if(idType==='quad'){const st=document.getElementById('quadStyle').value,sz=document.getElementById('quadSize').value;if(st)p.push(`<span style="color:var(--muted)">›</span><span class="bc">Style: ${st}</span>`);if(sz)p.push(`<span style="color:var(--muted)">›</span><span class="bc">Size: ${sz}</span>`);if(idMM.quad){p.push(`<span style="color:var(--muted)">›</span><span class="bc" style="color:var(--yellow-mid)">Mismatch</span>`);if(idLR.quad)p.push(`<span style="color:var(--muted)">›</span><span class="bc" style="color:var(--yellow-mid)">${idLR.quad==='L'?'Left':'Right'}</span>`);}}else if(idType==='inline'){const st=document.getElementById('inlineStyle').value,sz=document.getElementById('inlineSize').value;if(st)p.push(`<span style="color:var(--muted)">›</span><span class="bc">Style: ${st}</span>`);if(sz)p.push(`<span style="color:var(--muted)">›</span><span class="bc">Size: ${sz}</span>`);if(idMM.inline){p.push(`<span style="color:var(--muted)">›</span><span class="bc" style="color:var(--yellow-mid)">Mismatch</span>`);if(idLR.inline)p.push(`<span style="color:var(--muted)">›</span><span class="bc" style="color:var(--yellow-mid)">${idLR.inline==='L'?'Left':'Right'}</span>`);}}else if(idType==='safety'){const g=document.getElementById('safetyGear').value,c=document.getElementById('safetyColor').value;if(g)p.push(`<span style="color:var(--muted)">›</span><span class="bc">${g}</span>`);if(c)p.push(`<span style="color:var(--muted)">›</span><span class="bc">${c}</span>`);}else if(idType==='misc'){p.push(`<span style="color:var(--muted)">›</span><span class="bc">${idMCat==='CAB'?'Cabinet':'Storage'}</span>`);const it=idMCat==='CAB'?document.getElementById('miscCab').value:document.getElementById('miscStg').value;if(it)p.push(`<span style="color:var(--muted)">›</span><span class="bc">${it}</span>`);}document.getElementById('bcID').innerHTML=p.join('');}
+function chgID(type,d){chgCnt(type,d);}
+function submitID(type){const d=gDB().id;flash('chk'+type.charAt(0).toUpperCase()+type.slice(1));if(type==='quad'){const st=document.getElementById('quadStyle').value,sz=document.getElementById('quadSize').value,qty=parseInt(document.getElementById('quadCount').textContent)||0;if(!st||!sz||!qty)return;if(idMM.quad){if(!idLR.quad)return;d.quadMM[st+'|'+sz+'|'+idLR.quad]=(d.quadMM[st+'|'+sz+'|'+idLR.quad]||0)+qty;}else d.quad[st+'|'+sz]=(d.quad[st+'|'+sz]||0)+qty;document.getElementById('quadCount').textContent='0';}else if(type==='inline'){const st=document.getElementById('inlineStyle').value,sz=document.getElementById('inlineSize').value,qty=parseInt(document.getElementById('inlineCount').textContent)||0;if(!st||!sz||!qty)return;if(idMM.inline){if(!idLR.inline)return;d.inlineMM[st+'|'+sz+'|'+idLR.inline]=(d.inlineMM[st+'|'+sz+'|'+idLR.inline]||0)+qty;}else d.inline[st+'|'+sz]=(d.inline[st+'|'+sz]||0)+qty;document.getElementById('inlineCount').textContent='0';}else if(type==='safety'){const g=document.getElementById('safetyGear').value,c=document.getElementById('safetyColor').value,qty=parseInt(document.getElementById('safetyQty').value)||0;if(!g||!c||!qty)return;d.safety[g+'|'+c]=(d.safety[g+'|'+c]||0)+qty;}else if(type==='misc'){const it=idMCat==='CAB'?document.getElementById('miscCab').value:document.getElementById('miscStg').value,qty=parseInt(document.getElementById('miscQty').value)||0;if(!it||!qty)return;d.misc[it]=(d.misc[it]||0)+qty;}refreshIDInv();}
+function refreshIDInv(){const m=mID();let ih=0,mmT=0;Object.values(m.quad).forEach(v=>ih+=v);Object.values(m.inline).forEach(v=>ih+=v);Object.values(m.quadMM).forEach(v=>mmT+=v);Object.values(m.inlineMM).forEach(v=>mmT+=v);document.getElementById('idIH').textContent=ih;document.getElementById('idMM').textContent=mmT;const el=document.getElementById('idChart');if(idInvType==='quad')renderExpInv(QS,QSTYLES,m.quad,m.quadMM,el,'idq');else if(idInvType==='inline')renderExpInv(IS,ISTYLES,m.inline,m.inlineMM,el,'idi');else if(idInvType==='safety')renderSF(m.safety,el);else if(idInvType==='misc')renderMF(m.misc,el);}
+function renderExpInv(sizes,styles,paired,mm,el,pfx){let rows='';sizes.forEach((sz,si)=>{let tIH=0,tL=0,tR=0;styles.forEach(s=>{tIH+=(paired[s+'|'+sz]||0);tL+=(mm[s+'|'+sz+'|L']||0);tR+=(mm[s+'|'+sz+'|R']||0);});const rid=pfx+'_'+si;rows+=`<tr class="rs" onclick="xpand('${rid}',this,false)"><td>${sz}<span class="chv">▼</span></td><td>${tIH||'—'}</td><td>—</td><td>${tL?`<span class="bl">${tL}</span>`:'—'}</td><td>${tR?`<span class="br">${tR}</span>`:'—'}</td></tr>`;styles.forEach(s=>{const ih=paired[s+'|'+sz]||0,L=mm[s+'|'+sz+'|L']||0,R=mm[s+'|'+sz+'|R']||0;rows+=`<tr class="rstyle hr" data-g="${rid}"><td>${s}</td><td>${ih||'—'}</td><td>—</td><td>${L?`<span class="bl">${L}</span>`:'—'}</td><td>${R?`<span class="br">${R}</span>`:'—'}</td></tr>`;});});el.innerHTML=`<div class="chart-wrap"><table class="chart-table"><thead><tr><th>Size/Style</th><th>In-House</th><th>Damaged</th><th>MM Left</th><th>MM Right</th></tr></thead><tbody>${rows}</tbody></table></div>`;}
+function renderSF(s,el){let r='';SGEARS.forEach(g=>{SCOLORS.forEach(c=>{r+=`<tr><td>${g}</td><td>${c}</td><td>${s[g+'|'+c]||0}</td><td>—</td></tr>`;});});el.innerHTML=`<div class="flat-wrap"><table class="flat-table"><thead><tr><th>Gear</th><th>Color/Size</th><th>In-House</th><th>Damaged</th></tr></thead><tbody>${r}</tbody></table></div>`;}
+function renderMF(misc,el){el.innerHTML=`<div class="flat-wrap"><table class="flat-table"><thead><tr><th>Item</th><th>Qty</th></tr></thead><tbody>`+[...CABS,...STGS].map(it=>`<tr><td>${it}</td><td>${misc[it]||0}</td></tr>`).join('')+`</tbody></table></div>`;}
+
+// ACTIVE — LOG MOVEMENT
+function setACSkType(t,btn){acSkType=t;document.querySelectorAll('#acSkTypeGrid .type-btn').forEach(b=>b.classList.remove('ab'));btn.classList.add('ab');populateMovSizes();updateACBC();}
+function setACInvType(t,btn){acInvType=t;document.querySelectorAll('#ac-inventory .type-btn').forEach(b=>b.classList.remove('ab'));btn.classList.add('ab');refreshACInv();}
+function populateMovSizes(){const s=document.getElementById('movSize');s.innerHTML='<option value="">Select size...</option>'+(acSkType==='quad'?QS:IS).map(x=>`<option>${x}</option>`).join('');}
+function onMovChange(sel){
+  markC(sel);const v=sel.value;
+  ['movSzSection','movNewSection','movRetSection'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  if(!v){updateACBC();return;}
+  if(v==='NEW'){document.getElementById('movNewSection').classList.remove('hidden');}
+  else if(v==='RETIRED'){document.getElementById('movRetSection').classList.remove('hidden');}
+  else{
+    document.getElementById('movSzSection').classList.remove('hidden');
+    document.getElementById('mismatchRow').classList.toggle('hidden',!['DAMAGED','REPAIRED'].includes(v));
+    document.getElementById('transferWrap').classList.toggle('hidden',v!=='TRANSFER');
+    if(v==='TRANSFER'){const s=document.getElementById('movTo');s.innerHTML='<option value="">Select office...</option>'+OFFS.filter(o=>o!==loc&&loc!=='ALL').map(o=>`<option>${o}</option>`).join('');}
+    document.getElementById('movSzCount').textContent='0';
+    const lbl=v==='DAMAGED'?'Log Damaged':v==='REPAIRED'?'Log Repaired':'Log Transfer';
+    document.getElementById('movSzSubmitBtn').innerHTML=lbl+' <div class="chk" id="chkMovSz">✓</div>';
+    movLR=null;mmOn=false;
+    document.getElementById('mmToggle').classList.remove('on');document.getElementById('mmLabel').classList.remove('on');
+    document.getElementById('lrWrap').classList.add('hidden');document.querySelectorAll('#lrWrap .lr-btn').forEach(b=>b.classList.remove('active'));
+  }
+  updateACBC();
+}
+function toggleMovMM(){mmOn=!mmOn;document.getElementById('mmToggle').classList.toggle('on',mmOn);document.getElementById('mmLabel').classList.toggle('on',mmOn);document.getElementById('lrWrap').classList.toggle('hidden',!mmOn);movLR=null;document.querySelectorAll('#lrWrap .lr-btn').forEach(b=>b.classList.remove('active'));updateACBC();}
+function setMovLR(s,btn){movLR=s;document.querySelectorAll('#lrWrap .lr-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');updateACBC();}
+function updateACBC(){const mv=document.getElementById('movType').value,sz=document.getElementById('movSize').value,to=document.getElementById('movTo')?.value;const p=[`<span class="bc">${acSkType.charAt(0).toUpperCase()+acSkType.slice(1)}</span>`];if(mv)p.push(`<span style="color:var(--muted)">›</span><span class="bc">${mv}</span>`);if(sz&&!['NEW','RETIRED'].includes(mv))p.push(`<span style="color:var(--muted)">›</span><span class="bc">Size ${sz}</span>`);if(mmOn)p.push(`<span style="color:var(--muted)">›</span><span class="bc" style="color:var(--yellow-mid)">Mismatch</span>`);if(movLR)p.push(`<span style="color:var(--muted)">›</span><span class="bc" style="color:var(--yellow-mid)">${movLR==='L'?'Left':'Right'}</span>`);if(mv==='TRANSFER'&&to)p.push(`<span style="color:var(--muted)">›</span><span class="bc">→ ${to}</span>`);document.getElementById('bcAC').innerHTML=p.join('');}
+
+function submitMovSz(){
+  const d=gDB().ac;const mv=document.getElementById('movType').value,sz=document.getElementById('movSize').value,qty=parseInt(document.getElementById('movSzCount').textContent)||0;
+  if(!mv||!sz||!qty)return;flash('chkMovSz');
+  const t=acSkType,ts=new Date().toLocaleString();
+  if(mv==='DAMAGED'){d.damaged[t][sz]=(d.damaged[t][sz]||0)+qty;d.hist.unshift({ts,badge:'DAMAGED',cls:'hb-d',detail:`${t} size ${sz} ×${qty}`,loc});}
+  else if(mv==='REPAIRED'){d.damaged[t][sz]=Math.max(0,(d.damaged[t][sz]||0)-qty);d.active[t][sz]=(d.active[t][sz]||0)+qty;d.hist.unshift({ts,badge:'REPAIRED',cls:'hb-r',detail:`${t} size ${sz} ×${qty}`,loc});}
+  else if(mv==='TRANSFER'){const to=document.getElementById('movTo').value;if(!to)return;d.active[t][sz]=Math.max(0,(d.active[t][sz]||0)-qty);DB[to].ac.active[t][sz]=(DB[to].ac.active[t][sz]||0)+qty;d.tx[t][sz]=(d.tx[t][sz]||0)+qty;d.hist.unshift({ts,badge:'TRANSFER',cls:'hb-t',detail:`${t} size ${sz} ×${qty} → ${to}`,loc});}
+  document.getElementById('movSzCount').textContent='0';refreshACInv();renderHist();
+}
+
+// NEW EQUIPMENT
+function setNewType(t,btn){newType=t;document.querySelectorAll('#movNewSection .type-grid .type-btn').forEach(b=>b.classList.remove('ab'));btn.classList.add('ab');['quad','inline','safety','misc'].forEach(id=>document.getElementById('new-'+id).classList.toggle('hidden',id!==t));}
+function setNMCat(c,btn){newMCat=c;document.querySelectorAll('#new-misc>.lr-grid .lr-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('nMCabSel').classList.toggle('hidden',c!=='CAB');document.getElementById('nMStgSel').classList.toggle('hidden',c!=='STG');}
+function submitNew(type){
+  const d=gDB().ac;const ts=new Date().toLocaleString();
+  if(type==='quad'){const st=document.getElementById('nQStyle').value,sz=document.getElementById('nQSize').value,qty=parseInt(document.getElementById('nQCount').textContent)||0;if(!st||!sz||!qty)return;flash('chkNQ');d.active.quad[sz]=(d.active.quad[sz]||0)+qty;d.hist.unshift({ts,badge:'NEW',cls:'hb-n',detail:`quad ${sz} ×${qty} (${st})`,loc});document.getElementById('nQCount').textContent='0';}
+  else if(type==='inline'){const st=document.getElementById('nIStyle').value,sz=document.getElementById('nISize').value,qty=parseInt(document.getElementById('nICount').textContent)||0;if(!st||!sz||!qty)return;flash('chkNI');d.active.inline[sz]=(d.active.inline[sz]||0)+qty;d.hist.unshift({ts,badge:'NEW',cls:'hb-n',detail:`inline ${sz} ×${qty} (${st})`,loc});document.getElementById('nICount').textContent='0';}
+  else if(type==='safety'){const g=document.getElementById('nSGear').value,c=document.getElementById('nSColor').value,qty=parseInt(document.getElementById('nSQty').value)||0;if(!g||!c||!qty)return;flash('chkNS');d.hist.unshift({ts,badge:'NEW',cls:'hb-n',detail:`safety ${g} ${c} ×${qty}`,loc});}
+  else if(type==='misc'){const it=newMCat==='CAB'?document.getElementById('nMCab').value:document.getElementById('nMStg').value,qty=parseInt(document.getElementById('nMQty').value)||0;if(!it||!qty)return;flash('chkNM');d.hist.unshift({ts,badge:'NEW',cls:'hb-n',detail:`misc ${it} ×${qty}`,loc});}
+  refreshACInv();renderHist();
+}
+
+// RETIRED MOVEMENT
+function setRetMovType(t,btn){retMovType=t;document.querySelectorAll('#movRetSection .type-grid .type-btn').forEach(b=>b.classList.remove('ab'));btn.classList.add('ab');['quad','inline','safety','misc'].forEach(id=>document.getElementById('ret-'+id).classList.toggle('hidden',id!==t));}
+function setRMCat(c,btn){retMovMCat=c;document.querySelectorAll('#ret-misc>.lr-grid .lr-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('rMCabSel').classList.toggle('hidden',c!=='CAB');document.getElementById('rMStgSel').classList.toggle('hidden',c!=='STG');}
+function submitRetMov(type){
+  const d=gDB();const ts=new Date().toLocaleString();let label='',qty=0,reason='';
+  if(type==='quad'){const st=document.getElementById('rQStyle').value,sz=document.getElementById('rQSize').value;qty=parseInt(document.getElementById('rQCount').textContent)||0;reason=document.getElementById('rQReason').value.trim();if(!st||!sz||!qty||!reason)return;flash('chkRQ');label=`quad size ${sz} (${st})`;d.ac.active.quad[sz]=Math.max(0,(d.ac.active.quad[sz]||0)-qty);d.ret.quad[st+'|'+sz]=(d.ret.quad[st+'|'+sz]||0)+qty;document.getElementById('rQCount').textContent='0';document.getElementById('rQReason').value='';}
+  else if(type==='inline'){const st=document.getElementById('rIStyle').value,sz=document.getElementById('rISize').value;qty=parseInt(document.getElementById('rICount').textContent)||0;reason=document.getElementById('rIReason').value.trim();if(!st||!sz||!qty||!reason)return;flash('chkRI');label=`inline size ${sz} (${st})`;d.ac.active.inline[sz]=Math.max(0,(d.ac.active.inline[sz]||0)-qty);d.ret.inline[st+'|'+sz]=(d.ret.inline[st+'|'+sz]||0)+qty;document.getElementById('rICount').textContent='0';document.getElementById('rIReason').value='';}
+  else if(type==='safety'){const g=document.getElementById('rSGear').value,c=document.getElementById('rSColor').value;qty=parseInt(document.getElementById('rSQty').value)||0;reason=document.getElementById('rSReason').value.trim();if(!g||!c||!qty||!reason)return;flash('chkRS');label=`${g} ${c}`;d.ret.safety[g+'|'+c]=(d.ret.safety[g+'|'+c]||0)+qty;}
+  else if(type==='misc'){const it=retMovMCat==='CAB'?document.getElementById('rMCab').value:document.getElementById('rMStg').value;qty=parseInt(document.getElementById('rMQty').value)||0;reason=document.getElementById('rMReason').value.trim();if(!it||!qty||!reason)return;flash('chkRM');label=it;d.ret.misc[it]=(d.ret.misc[it]||0)+qty;}
+  d.ret.reasons.unshift({ts,type,label,qty,reason,loc});
+  d.ac.hist.unshift({ts,badge:'RETIRED',cls:'hb-ret',detail:`${label} ×${qty} — ${reason}`,loc});
+  refreshACInv();refreshRet();renderHist();
+}
+
+function refreshACInv(){const m=mAC();const sizes=acInvType==='quad'?QS:IS;let ih=0,out=0,dmg=0;Object.values(m.active[acInvType]).forEach(v=>ih+=v);Object.values(m.out[acInvType]).forEach(v=>out+=v);Object.values(m.damaged[acInvType]).forEach(v=>dmg+=v);document.getElementById('aIH').textContent=ih;document.getElementById('aOut').textContent=out;document.getElementById('aDmg').textContent=dmg;document.getElementById('aTot').textContent=ih+out;let rows='';sizes.forEach((sz,si)=>{const ih2=m.active[acInvType][sz]||0,o=m.out[acInvType][sz]||0,dv=m.damaged[acInvType][sz]||0,tx=m.tx[acInvType][sz]||0,rid='aci_'+si;rows+=`<tr class="rs" onclick="xpand('${rid}',this,false)"><td>${sz}<span class="chv">▼</span></td><td>${ih2||'—'}</td><td>${o||'—'}</td><td>${dv||'—'}</td><td>${tx||'—'}</td><td style="font-weight:600">${ih2+o}</td></tr><tr class="rstyle hr" data-g="${rid}"><td colspan="6" style="padding:8px 12px;font-size:12px;font-style:italic">Style breakdown in In-Depth Inventory</td></tr>`;});document.getElementById('acChart').innerHTML=`<div class="chart-wrap"><table class="chart-table"><thead><tr><th>Size</th><th>In-House</th><th>Out</th><th>Damaged</th><th>Tx'd</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>`;}
+function toggleAddSch(){addOpen=!addOpen;document.getElementById('addSchForm').classList.toggle('hidden',!addOpen);}
+function submitSch(){const d=gDB().ac;const name=document.getElementById('sName').value.trim(),type=document.getElementById('sType').value;if(!name||!type)return;d.schools.push({name,type,start:document.getElementById('sStart').value,end:document.getElementById('sEnd').value,packed:document.getElementById('sPacked').value,delivery:document.getElementById('sDelivery').value,pickup:document.getElementById('sPickup').value,sizes:document.getElementById('sSizes').value,loc});flash('chkSch');['sName','sStart','sEnd','sPacked','sDelivery','sPickup','sSizes'].forEach(id=>{const el=document.getElementById(id);el.value='';el.classList.remove('chosen');});document.getElementById('sType').value='';document.getElementById('sType').classList.remove('chosen');addOpen=false;document.getElementById('addSchForm').classList.add('hidden');renderSch();refreshBD();}
+function filterSch(f,btn){sFilt=f;document.querySelectorAll('#ac-schools .chip').forEach(b=>{b.className='chip';});btn.classList.add(f==='ALL'?'ca':f==='ELEMENTARY'?'ce':f==='MIDDLE'?'cm':'ch');renderSch();}
+function renderSch(){const m=mAC();let schools=m.schools;if(sFilt!=='ALL')schools=schools.filter(s=>s.type===sFilt);const el=document.getElementById('schoolList');if(!schools.length){el.innerHTML='<div class="empty">No schools added yet</div>';return;}el.innerHTML=schools.map(s=>{const cls=s.type==='ELEMENTARY'?'elem':s.type==='MIDDLE'?'mid':'high';const lbl=s.type==='ELEMENTARY'?'Elementary':s.type==='MIDDLE'?'Middle':'High';return `<div class="school-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="sname">${s.name}</div><span class="bs ${cls}">${lbl}</span></div><div class="smeta"><span>${s.start||'—'} to ${s.end||'—'}</span><span>Del: ${s.delivery||'—'}</span><span>Packed: ${s.packed||'—'}</span><span>Pickup: ${s.pickup||'—'}</span></div>${s.sizes?`<div style="font-size:12px;color:var(--muted);margin-top:6px">Sizes: ${s.sizes}</div>`:''}</div>`;}).join('');}
+function toggleDtMode(){dtRange=!dtRange;document.getElementById('dtToggle').classList.toggle('on',dtRange);const lbl=document.getElementById('dtLabel');lbl.classList.toggle('on',dtRange);lbl.textContent=dtRange?'Date range':'Single date';document.getElementById('dtRange').classList.toggle('hidden',!dtRange);document.getElementById('dtSingle').classList.toggle('hidden',dtRange);refreshBD();}
+function filterBD(f,btn){bdFilt=f;document.querySelectorAll('#ac-bydate .chip').forEach(b=>{b.className='chip';});btn.classList.add(f==='ALL'?'ca':f==='ELEMENTARY'?'ce':f==='MIDDLE'?'cm':'ch');refreshBD();}
+function refreshBD(){const m=mAC();let schools=m.schools;if(bdFilt!=='ALL')schools=schools.filter(s=>s.type===bdFilt);let from='',to='';if(dtRange){from=document.getElementById('dtFrom').value;to=document.getElementById('dtTo').value;}else{const d=document.getElementById('dtOne').value;from=d;to=d;}if(from||to){schools=schools.filter(s=>{const st=s.start||'',en=s.end||'';if(from&&to)return(!st||st<=to)&&(!en||en>=from);if(from)return !en||en>=from;if(to)return !st||st<=to;return true;});}document.getElementById('bdResults').innerHTML=schools.length?schools.map(s=>{const cls=s.type==='ELEMENTARY'?'elem':s.type==='MIDDLE'?'mid':'high';const lbl=s.type==='ELEMENTARY'?'Elementary':s.type==='MIDDLE'?'Middle':'High';return `<div class="school-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="sname">${s.name}</div><span class="bs ${cls}">${lbl}</span></div><div class="smeta"><span>${s.start||'—'} → ${s.end||'—'}</span><span>Delivery: ${s.delivery||'—'}</span></div></div>`;}).join(''):'<div class="empty">No schools match selected filters</div>';renderTracker(m.schools);}
+function parsePairs(str){if(!str)return 0;let t=0;str.split(',').forEach(p=>{const m=p.trim().match(/×(\d+)/);if(m)t+=parseInt(m[1]);});return t;}
+function renderTracker(schools){[['ELEMENTARY','e','be','fe'],['MIDDLE','m','bm','fm'],['HIGH','h','bh','fh']].forEach(([type,pfx,ec,fc])=>{const list=schools.filter(s=>s.type===type);document.getElementById(pfx+'Count').textContent=`(${list.length})`;let html='';list.forEach(s=>{const p=parsePairs(s.sizes);const n=p>240?3:p>120?2:1;const lbl=s.name.split(' ').map(w=>w[0]).join('').slice(0,3);for(let i=0;i<n;i++)html+=`<div class="block ${fc}" title="${s.name}">${i===0?lbl:''}</div>`;});for(let i=0;i<Math.max(0,10-list.length);i++)html+=`<div class="block ${ec}"></div>`;document.getElementById(pfx+'Blocks').innerHTML=html;});}
+function renderHist(){const m=mAC();const el=document.getElementById('histList');if(!m.hist.length){el.innerHTML='<div class="empty">No movements logged yet</div>';return;}el.innerHTML=m.hist.slice(0,50).map(h=>`<div class="hi"><div><span class="hb ${h.cls}">${h.badge}</span>${h.detail}</div><div class="ht">${h.ts} · ${h.loc}</div></div>`).join('');}
+
+// RETIRED VIEW
+function setRetType(t,btn){retType=t;document.querySelectorAll('#tab-retired .type-grid .type-btn').forEach(b=>b.classList.remove('ar'));btn.classList.add('ar');refreshRet();}
+function refreshRet(){
+  const m=mRET();let total=0,affected=0;const data=m[retType];
+  Object.values(data).forEach(v=>total+=v);affected=Object.values(data).filter(v=>v>0).length;
+  document.getElementById('retTotal').textContent=total;document.getElementById('retAffected').textContent=affected;
+  const el=document.getElementById('retChart');
+  if(retType==='quad')renderRetExp(QS,QSTYLES,m.quad,el,'rq');
+  else if(retType==='inline')renderRetExp(IS,ISTYLES,m.inline,el,'ri');
+  else if(retType==='safety'){let r='';SGEARS.forEach(g=>{SCOLORS.forEach(c=>{r+=`<tr><td>${g}</td><td>${c}</td><td>${m.safety[g+'|'+c]||'—'}</td></tr>`;});});el.innerHTML=`<div class="flat-wrap"><table class="flat-table"><thead><tr><th>Gear</th><th>Color/Size</th><th>Qty Retired</th></tr></thead><tbody>${r}</tbody></table></div>`;}
+  else if(retType==='misc'){el.innerHTML=`<div class="flat-wrap"><table class="flat-table"><thead><tr><th>Item</th><th>Qty Retired</th></tr></thead><tbody>`+[...CABS,...STGS].map(it=>`<tr><td>${it}</td><td>${m.misc[it]||'—'}</td></tr>`).join('')+`</tbody></table></div>`;}
+  // Reason list filtered by type
+  const rl=document.getElementById('retReasonList');
+  const filtered=m.reasons.filter(r=>r.type===retType);
+  if(!filtered.length){rl.innerHTML='<div class="empty">No retirements logged yet</div>';return;}
+  rl.innerHTML=filtered.map(r=>`<div class="reason-item"><div><strong>${r.label}</strong> ×${r.qty}</div><div style="font-size:13px;color:var(--muted);margin-top:3px">${r.reason}</div><div class="reason-meta">${r.ts} · ${r.loc}</div></div>`).join('');
+}
+function renderRetExp(sizes,styles,data,el,pfx){let rows='';sizes.forEach((sz,si)=>{let tot=0;styles.forEach(s=>tot+=(data[s+'|'+sz]||0));const rid=pfx+'_'+si;rows+=`<tr class="rs" onclick="this.classList.toggle('expr');document.querySelectorAll('[data-g=\\'${rid}\\']').forEach(r=>r.classList.toggle('hr'))"><td>${sz}<span class="chv">▼</span></td><td>${tot||'—'}</td></tr>`;styles.forEach(s=>{rows+=`<tr class="rstyle hr" data-g="${rid}"><td>${s}</td><td>${data[s+'|'+sz]||'—'}</td></tr>`;});});el.innerHTML=`<div class="chart-wrap"><table class="chart-table"><thead><tr><th>Size / Style</th><th>Qty Retired</th></tr></thead><tbody>${rows}</tbody></table></div>`;}
+
+// INIT
+document.getElementById('allBtn').style.display='';
+populateMovSizes();refreshIDInv();refreshACInv();refreshRet();renderTracker([]);updateIDBC();updateACBC();
+setNMCat('CAB',document.getElementById('nMCabBtn'));
+setRMCat('CAB',document.getElementById('rMCabBtn'));
+</script>
+</body>
+</html>
